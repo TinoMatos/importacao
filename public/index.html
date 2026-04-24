@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle de Importação</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f4f0; color: #1a1a1a; min-height: 100vh; }
+  .topbar { background: #fff; border-bottom: 1px solid #e0ddd5; padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 10; }
+  .topbar h1 { font-size: 16px; font-weight: 600; cursor: pointer; }
+  .topbar-right { font-size: 12px; color: #888; display: flex; gap: 12px; align-items: center; }
+  .link-btn { background: none; border: none; color: #666; cursor: pointer; font-size: 12px; }
+  .link-btn:hover { color: #1a1a1a; }
+  .container { max-width: 1080px; margin: 0 auto; padding: 1.5rem 1rem; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 1.5rem; background: #fff; border: 1px solid #e0ddd5; border-radius: 10px; padding: 4px; width: fit-content; flex-wrap: wrap; }
+  .tab { font-size: 13px; padding: 7px 18px; border: none; background: none; cursor: pointer; color: #666; border-radius: 7px; font-weight: 500; }
+  .tab.active { background: #1a1a1a; color: #fff; }
+  .tab:hover:not(.active) { background: #f0ede8; }
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 1.5rem; }
+  .metric { background: #fff; border: 1px solid #e0ddd5; border-radius: 12px; padding: 16px; }
+  .metric-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .metric-value { font-size: 22px; font-weight: 600; }
+  .metric-sub { font-size: 11px; color: #aaa; margin-top: 3px; }
+  .card { background: #fff; border: 1px solid #e0ddd5; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+  .card-title { font-size: 14px; font-weight: 600; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
+  .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 10px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group label { font-size: 12px; color: #666; font-weight: 500; }
+  .form-group input, .form-group select { font-size: 13px; padding: 8px 11px; border: 1px solid #ddd; border-radius: 8px; background: #fafaf8; outline: none; width: 100%; }
+  .form-group input:focus, .form-group select:focus { border-color: #1a1a1a; background: #fff; }
+  .btn { font-size: 13px; padding: 9px 18px; border: 1px solid #ddd; border-radius: 8px; background: #fff; cursor: pointer; font-weight: 500; }
+  .btn-primary { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+  .btn-primary:hover { background: #333; }
+  .btn-danger { color: #c33; border-color: #ecc; background: #fff; }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; padding: 8px 10px; border-bottom: 1px solid #eee; }
+  td { padding: 10px; border-bottom: 1px solid #f0ede8; vertical-align: middle; }
+  tr:hover td { background: #fafaf8; }
+  .badge { display: inline-block; font-size: 11px; padding: 3px 9px; border-radius: 99px; font-weight: 600; }
+  .badge-produto { background: #dbeeff; color: #0a3d6b; }
+  .badge-frete { background: #dcf0d0; color: #1e4d0a; }
+  .badge-seguro { background: #fce8d5; color: #7a3906; }
+  .badge-taxa { background: #f5d5d5; color: #7a1a1a; }
+  .badge-outro { background: #eee; color: #555; }
+  .container-card { cursor: pointer; transition: border 0.15s; }
+  .container-card:hover { border-color: #1a1a1a; }
+  .empty { text-align: center; color: #999; padding: 2rem; font-size: 13px; }
+  .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+  .login-box { background: #fff; border: 1px solid #e0ddd5; border-radius: 14px; padding: 2rem; width: 320px; }
+  .login-box h2 { font-size: 18px; margin-bottom: 1.25rem; }
+  .login-box .form-group { margin-bottom: 0.75rem; }
+  .error { color: #c33; font-size: 12px; margin-top: 8px; }
+  .hidden { display: none !important; }
+  .pill-row { display: flex; gap: 8px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<div id="login" class="login-wrap">
+  <div class="login-box">
+    <h2>Entrar</h2>
+    <div class="form-group">
+      <label>Usuário</label>
+      <input id="login-user" type="text" autocomplete="username">
+    </div>
+    <div class="form-group">
+      <label>Senha</label>
+      <input id="login-pass" type="password" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary" style="width: 100%; margin-top: 12px;" onclick="doLogin()">Entrar</button>
+    <div id="login-error" class="error"></div>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <div class="topbar">
+    <h1 onclick="showDashboard()">Controle de Importação</h1>
+    <div class="topbar-right">
+      <span id="user-label"></span>
+      <button class="link-btn" onclick="logout()">sair</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- DASHBOARD -->
+    <div id="view-dashboard">
+      <div class="metrics">
+        <div class="metric"><div class="metric-label">Contêineres</div><div class="metric-value" id="m-total">0</div></div>
+        <div class="metric"><div class="metric-label">Em andamento</div><div class="metric-value" id="m-abertos">0</div></div>
+        <div class="metric"><div class="metric-label">Valor total esperado</div><div class="metric-value" id="m-esperado">R$ 0</div></div>
+        <div class="metric"><div class="metric-label">Total pago (BRL)</div><div class="metric-value" id="m-pago">R$ 0</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Novo contêiner</div>
+        <div class="form-row">
+          <div class="form-group"><label>Nome</label><input id="c-nome" placeholder="Ex: Contêiner 01"></div>
+          <div class="form-group"><label>Data estimada</label><input id="c-data" type="date"></div>
+          <div class="form-group"><label>Valor total esperado (BRL)</label><input id="c-valor" type="number" step="0.01" value="0"></div>
+          <div class="form-group"><label>&nbsp;</label><button class="btn btn-primary" onclick="createContainer()">Criar</button></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Contêineres</div>
+        <div id="containers-list"></div>
+      </div>
+    </div>
+
+    <!-- PAINEL CONTAINER -->
+    <div id="view-container" class="hidden">
+      <button class="link-btn" onclick="showDashboard()">← voltar</button>
+      <h2 id="ct-title" style="font-size: 20px; font-weight: 600; margin: 6px 0 1rem;"></h2>
+
+      <div class="tabs">
+        <button class="tab active" data-tab="resumo" onclick="setTab('resumo')">Resumo</button>
+        <button class="tab" data-tab="produtos" onclick="setTab('produtos')">Produtos</button>
+        <button class="tab" data-tab="lancamentos" onclick="setTab('lancamentos')">Lançamentos</button>
+        <button class="tab" data-tab="rateio" onclick="setTab('rateio')">Custo por produto</button>
+        <button class="tab" data-tab="config" onclick="setTab('config')">Config</button>
+      </div>
+
+      <div id="tab-resumo">
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">Valor esperado</div><div class="metric-value" id="r-esperado">R$ 0</div></div>
+          <div class="metric"><div class="metric-label">Total pago</div><div class="metric-value" id="r-pago">R$ 0</div></div>
+          <div class="metric"><div class="metric-label">Saldo a pagar</div><div class="metric-value" id="r-saldo">R$ 0</div></div>
+          <div class="metric"><div class="metric-label">Produtos cadastrados</div><div class="metric-value" id="r-prod">0</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Pagamentos por categoria</div>
+          <div id="r-categorias"></div>
+        </div>
+      </div>
+
+      <div id="tab-produtos" class="hidden">
+        <div class="card">
+          <div class="card-title">Adicionar produto</div>
+          <div class="form-row">
+            <div class="form-group"><label>Descrição</label><input id="p-desc"></div>
+            <div class="form-group"><label>Quantidade</label><input id="p-qtd" type="number" value="1"></div>
+            <div class="form-group"><label>Valor unit. China</label><input id="p-vu" type="number" step="0.01" value="0"></div>
+            <div class="form-group"><label>Moeda</label><select id="p-moeda"><option>USD</option><option>CNY</option><option>BRL</option></select></div>
+            <div class="form-group"><label>Custo unit. Brasil (R$)</label><input id="p-custo" type="number" step="0.01" value="0"></div>
+            <div class="form-group"><label>&nbsp;</label><button class="btn btn-primary" onclick="addProduto()">Adicionar</button></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Produtos do contêiner</div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Descrição</th><th>Qtd</th><th>Unit. China</th><th>Moeda</th><th>Unit. Brasil</th><th>Total Brasil</th><th></th></tr></thead>
+            <tbody id="produtos-tbody"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <div id="tab-lancamentos" class="hidden">
+        <div class="card">
+          <div class="card-title">Novo lançamento</div>
+          <div class="form-row">
+            <div class="form-group"><label>Data</label><input id="l-data" type="date"></div>
+            <div class="form-group"><label>Descrição</label><input id="l-desc"></div>
+            <div class="form-group"><label>Categoria</label><select id="l-cat"><option>Produto</option><option>Frete</option><option>Seguro</option><option>Taxa</option><option>Outro</option></select></div>
+            <div class="form-group"><label>Moeda</label><select id="l-moeda" onchange="recalcBRL()"><option>BRL</option><option>USD</option><option>CNY</option></select></div>
+            <div class="form-group"><label>Valor original</label><input id="l-valor" type="number" step="0.01" value="0" oninput="recalcBRL()"></div>
+            <div class="form-group"><label>Câmbio</label><input id="l-cambio" type="number" step="0.0001" value="1" oninput="recalcBRL()"></div>
+            <div class="form-group"><label>Valor BRL</label><input id="l-brl" type="number" step="0.01" value="0"></div>
+            <div class="form-group"><label>&nbsp;</label><button class="btn btn-primary" onclick="addLancamento()">Adicionar</button></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Lançamentos</div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Moeda</th><th>Valor orig.</th><th>Câmbio</th><th>BRL</th><th></th></tr></thead>
+            <tbody id="lanc-tbody"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <div id="tab-rateio" class="hidden">
+        <div class="card">
+          <div class="card-title">Custo final por produto (informado por você)</div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Descrição</th><th>Qtd</th><th>Unit. Brasil</th><th>Total Brasil</th></tr></thead>
+            <tbody id="rateio-tbody"></tbody>
+            <tfoot id="rateio-tfoot"></tfoot>
+          </table></div>
+        </div>
+      </div>
+
+      <div id="tab-config" class="hidden">
+        <div class="card">
+          <div class="card-title">Configurações do contêiner</div>
+          <div class="form-row">
+            <div class="form-group"><label>Nome</label><input id="cfg-nome"></div>
+            <div class="form-group"><label>Data estimada</label><input id="cfg-data" type="date"></div>
+            <div class="form-group"><label>Valor total esperado (BRL)</label><input id="cfg-valor" type="number" step="0.01"></div>
+            <div class="form-group"><label>Status</label><select id="cfg-status"><option>Em andamento</option><option>Finalizado</option><option>Cancelado</option></select></div>
+          </div>
+          <div class="pill-row">
+            <button class="btn btn-primary" onclick="saveConfig()">Salvar</button>
+            <button class="btn btn-danger" onclick="deleteContainer()">Excluir contêiner</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '';
+let token = localStorage.getItem('token') || '';
+let currentContainer = null;
+
+const fmtBRL = n => 'R$ ' + (Number(n) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtDate = s => s ? new Date(s).toLocaleDateString('pt-BR') : '';
+
+async function api(path, opts = {}) {
+  const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+  if (token) headers.Authorization = 'Bearer ' + token;
+  const r = await fetch(API + path, Object.assign({}, opts, { headers }));
+  if (r.status === 401) { logout(); throw new Error('unauthorized'); }
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'erro');
+  return r.json();
+}
+
+function logout() {
+  localStorage.removeItem('token');
+  token = '';
+  document.getElementById('login').classList.remove('hidden');
+  document.getElementById('app').classList.add('hidden');
+}
+
+async function doLogin() {
+  const username = document.getElementById('login-user').value.trim();
+  const password = document.getElementById('login-pass').value;
+  const err = document.getElementById('login-error');
+  err.textContent = '';
+  try {
+    const r = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+    if (!r.ok) { err.textContent = 'Usuário ou senha inválidos'; return; }
+    const data = await r.json();
+    token = data.token;
+    localStorage.setItem('token', token);
+    document.getElementById('user-label').textContent = data.username;
+    document.getElementById('login').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    showDashboard();
+  } catch (e) { err.textContent = 'Erro ao conectar'; }
+}
+
+document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+async function boot() {
+  if (!token) return;
+  try {
+    await api('/api/containers');
+    document.getElementById('login').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    showDashboard();
+  } catch {}
+}
+
+// --- Dashboard ---
+async function showDashboard() {
+  currentContainer = null;
+  document.getElementById('view-container').classList.add('hidden');
+  document.getElementById('view-dashboard').classList.remove('hidden');
+  const list = await api('/api/containers');
+  const el = document.getElementById('containers-list');
+  if (!list.length) { el.innerHTML = '<div class="empty">Nenhum contêiner. Crie o primeiro acima.</div>'; }
+  else {
+    el.innerHTML = list.map(c => {
+      const pago = c.lancamentos.reduce((s, l) => s + l.valorBRL, 0);
+      const saldo = (c.valorTotalEsperado || 0) - pago;
+      return `<div class="card container-card" onclick="openContainer(${c.id})">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+          <div>
+            <div style="font-weight:600;font-size:15px">${escapeHtml(c.nome)}</div>
+            <div style="font-size:12px;color:#888;margin-top:2px">${c.status} · ${fmtDate(c.dataEstimada)} · ${c.produtos.length} produto(s)</div>
+          </div>
+          <div style="text-align:right;font-size:12px;color:#666">
+            <div>Esperado: <b>${fmtBRL(c.valorTotalEsperado)}</b></div>
+            <div>Pago: <b>${fmtBRL(pago)}</b></div>
+            <div>Saldo: <b style="color:${saldo>0?'#c33':'#1e4d0a'}">${fmtBRL(saldo)}</b></div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('m-total').textContent = list.length;
+  document.getElementById('m-abertos').textContent = list.filter(c => c.status === 'Em andamento').length;
+  const esperado = list.reduce((s, c) => s + (c.valorTotalEsperado || 0), 0);
+  const pago = list.reduce((s, c) => s + c.lancamentos.reduce((a, l) => a + l.valorBRL, 0), 0);
+  document.getElementById('m-esperado').textContent = fmtBRL(esperado);
+  document.getElementById('m-pago').textContent = fmtBRL(pago);
+}
+
+async function createContainer() {
+  const nome = document.getElementById('c-nome').value.trim();
+  if (!nome) return alert('Informe o nome');
+  await api('/api/containers', { method: 'POST', body: JSON.stringify({
+    nome,
+    dataEstimada: document.getElementById('c-data').value || null,
+    valorTotalEsperado: Number(document.getElementById('c-valor').value || 0),
+  })});
+  document.getElementById('c-nome').value = '';
+  document.getElementById('c-data').value = '';
+  document.getElementById('c-valor').value = '0';
+  showDashboard();
+}
+
+// --- Painel do Contêiner ---
+async function openContainer(id) {
+  currentContainer = await api('/api/containers/' + id);
+  document.getElementById('view-dashboard').classList.add('hidden');
+  document.getElementById('view-container').classList.remove('hidden');
+  document.getElementById('ct-title').textContent = currentContainer.nome;
+  setTab('resumo');
+}
+
+async function refreshContainer() {
+  if (!currentContainer) return;
+  currentContainer = await api('/api/containers/' + currentContainer.id);
+  renderActiveTab();
+}
+
+let activeTab = 'resumo';
+function setTab(t) {
+  activeTab = t;
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
+  ['resumo','produtos','lancamentos','rateio','config'].forEach(x => {
+    document.getElementById('tab-' + x).classList.toggle('hidden', x !== t);
+  });
+  renderActiveTab();
+}
+
+function renderActiveTab() {
+  if (activeTab === 'resumo') renderResumo();
+  if (activeTab === 'produtos') renderProdutos();
+  if (activeTab === 'lancamentos') renderLancamentos();
+  if (activeTab === 'rateio') renderRateio();
+  if (activeTab === 'config') renderConfig();
+}
+
+function renderResumo() {
+  const c = currentContainer;
+  const pago = c.lancamentos.reduce((s, l) => s + l.valorBRL, 0);
+  document.getElementById('r-esperado').textContent = fmtBRL(c.valorTotalEsperado);
+  document.getElementById('r-pago').textContent = fmtBRL(pago);
+  document.getElementById('r-saldo').textContent = fmtBRL((c.valorTotalEsperado || 0) - pago);
+  document.getElementById('r-prod').textContent = c.produtos.length;
+  const cats = {};
+  c.lancamentos.forEach(l => { cats[l.categoria] = (cats[l.categoria] || 0) + l.valorBRL; });
+  const el = document.getElementById('r-categorias');
+  if (!Object.keys(cats).length) { el.innerHTML = '<div class="empty">Sem lançamentos</div>'; return; }
+  el.innerHTML = '<div class="table-wrap"><table><thead><tr><th>Categoria</th><th>Total BRL</th></tr></thead><tbody>' +
+    Object.entries(cats).map(([k, v]) => `<tr><td><span class="badge badge-${k.toLowerCase()}">${k}</span></td><td>${fmtBRL(v)}</td></tr>`).join('') +
+    '</tbody></table></div>';
+}
+
+function renderProdutos() {
+  const tb = document.getElementById('produtos-tbody');
+  if (!currentContainer.produtos.length) { tb.innerHTML = '<tr><td colspan="7" class="empty">Nenhum produto</td></tr>'; return; }
+  tb.innerHTML = currentContainer.produtos.map(p => `<tr>
+    <td>${escapeHtml(p.descricao)}</td>
+    <td>${p.quantidade}</td>
+    <td>${Number(p.valorUnitarioChina).toFixed(2)}</td>
+    <td>${p.moeda}</td>
+    <td>${fmtBRL(p.custoUnitarioBrasil)}</td>
+    <td>${fmtBRL(p.custoUnitarioBrasil * p.quantidade)}</td>
+    <td><button class="btn btn-sm btn-danger" onclick="delProduto(${p.id})">excluir</button></td>
+  </tr>`).join('');
+}
+
+async function addProduto() {
+  const desc = document.getElementById('p-desc').value.trim();
+  if (!desc) return alert('Descrição obrigatória');
+  await api(`/api/containers/${currentContainer.id}/produtos`, { method: 'POST', body: JSON.stringify({
+    descricao: desc,
+    quantidade: Number(document.getElementById('p-qtd').value || 1),
+    valorUnitarioChina: Number(document.getElementById('p-vu').value || 0),
+    moeda: document.getElementById('p-moeda').value,
+    custoUnitarioBrasil: Number(document.getElementById('p-custo').value || 0),
+  })});
+  document.getElementById('p-desc').value = '';
+  document.getElementById('p-qtd').value = '1';
+  document.getElementById('p-vu').value = '0';
+  document.getElementById('p-custo').value = '0';
+  refreshContainer();
+}
+
+async function delProduto(id) {
+  if (!confirm('Excluir produto?')) return;
+  await api('/api/produtos/' + id, { method: 'DELETE' });
+  refreshContainer();
+}
+
+function renderLancamentos() {
+  const tb = document.getElementById('lanc-tbody');
+  if (!document.getElementById('l-data').value) document.getElementById('l-data').value = new Date().toISOString().slice(0, 10);
+  if (!currentContainer.lancamentos.length) { tb.innerHTML = '<tr><td colspan="8" class="empty">Nenhum lançamento</td></tr>'; return; }
+  tb.innerHTML = currentContainer.lancamentos.map(l => `<tr>
+    <td>${fmtDate(l.data)}</td>
+    <td>${escapeHtml(l.descricao)}</td>
+    <td><span class="badge badge-${l.categoria.toLowerCase()}">${l.categoria}</span></td>
+    <td>${l.moeda}</td>
+    <td>${Number(l.valorOriginal).toFixed(2)}</td>
+    <td>${Number(l.cambio).toFixed(4)}</td>
+    <td>${fmtBRL(l.valorBRL)}</td>
+    <td><button class="btn btn-sm btn-danger" onclick="delLanc(${l.id})">excluir</button></td>
+  </tr>`).join('');
+}
+
+function recalcBRL() {
+  const moeda = document.getElementById('l-moeda').value;
+  const v = Number(document.getElementById('l-valor').value || 0);
+  const c = Number(document.getElementById('l-cambio').value || 1);
+  document.getElementById('l-brl').value = (moeda === 'BRL' ? v : v * c).toFixed(2);
+}
+
+async function addLancamento() {
+  const desc = document.getElementById('l-desc').value.trim();
+  if (!desc) return alert('Descrição obrigatória');
+  await api(`/api/containers/${currentContainer.id}/lancamentos`, { method: 'POST', body: JSON.stringify({
+    data: document.getElementById('l-data').value || new Date().toISOString(),
+    descricao: desc,
+    categoria: document.getElementById('l-cat').value,
+    moeda: document.getElementById('l-moeda').value,
+    valorOriginal: Number(document.getElementById('l-valor').value || 0),
+    cambio: Number(document.getElementById('l-cambio').value || 1),
+    valorBRL: Number(document.getElementById('l-brl').value || 0),
+  })});
+  document.getElementById('l-desc').value = '';
+  document.getElementById('l-valor').value = '0';
+  document.getElementById('l-brl').value = '0';
+  refreshContainer();
+}
+
+async function delLanc(id) {
+  if (!confirm('Excluir lançamento?')) return;
+  await api('/api/lancamentos/' + id, { method: 'DELETE' });
+  refreshContainer();
+}
+
+function renderRateio() {
+  const tb = document.getElementById('rateio-tbody');
+  const tf = document.getElementById('rateio-tfoot');
+  if (!currentContainer.produtos.length) { tb.innerHTML = '<tr><td colspan="4" class="empty">Adicione produtos primeiro</td></tr>'; tf.innerHTML = ''; return; }
+  let total = 0, qtdTotal = 0;
+  tb.innerHTML = currentContainer.produtos.map(p => {
+    const linha = p.custoUnitarioBrasil * p.quantidade;
+    total += linha; qtdTotal += p.quantidade;
+    return `<tr><td>${escapeHtml(p.descricao)}</td><td>${p.quantidade}</td><td>${fmtBRL(p.custoUnitarioBrasil)}</td><td>${fmtBRL(linha)}</td></tr>`;
+  }).join('');
+  const pago = currentContainer.lancamentos.reduce((s, l) => s + l.valorBRL, 0);
+  tf.innerHTML = `<tr><td style="font-weight:600">Total</td><td style="font-weight:600">${qtdTotal}</td><td></td><td style="font-weight:600">${fmtBRL(total)}</td></tr>
+  <tr><td colspan="3" style="color:#888">Total pago no contêiner</td><td>${fmtBRL(pago)}</td></tr>
+  <tr><td colspan="3" style="color:#888">Diferença (pago − custo informado)</td><td style="color:${(pago-total)>=0?'#1e4d0a':'#c33'}">${fmtBRL(pago - total)}</td></tr>`;
+}
+
+function renderConfig() {
+  const c = currentContainer;
+  document.getElementById('cfg-nome').value = c.nome;
+  document.getElementById('cfg-data').value = c.dataEstimada ? c.dataEstimada.slice(0, 10) : '';
+  document.getElementById('cfg-valor').value = c.valorTotalEsperado;
+  document.getElementById('cfg-status').value = c.status;
+}
+
+async function saveConfig() {
+  await api('/api/containers/' + currentContainer.id, { method: 'PUT', body: JSON.stringify({
+    nome: document.getElementById('cfg-nome').value,
+    dataEstimada: document.getElementById('cfg-data').value || null,
+    valorTotalEsperado: Number(document.getElementById('cfg-valor').value || 0),
+    status: document.getElementById('cfg-status').value,
+  })});
+  await refreshContainer();
+  document.getElementById('ct-title').textContent = currentContainer.nome;
+  alert('Salvo');
+}
+
+async function deleteContainer() {
+  if (!confirm('Excluir este contêiner e TODOS seus produtos/lançamentos?')) return;
+  await api('/api/containers/' + currentContainer.id, { method: 'DELETE' });
+  showDashboard();
+}
+
+function escapeHtml(s) { return String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+boot();
+</script>
+</body>
+</html>

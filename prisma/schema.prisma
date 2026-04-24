@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now())
+}
+
+model Container {
+  id                  Int          @id @default(autoincrement())
+  nome                String
+  dataEstimada        DateTime?
+  valorTotalEsperado  Float        @default(0)
+  status              String       @default("Em andamento")
+  createdAt           DateTime     @default(now())
+  produtos            Produto[]
+  lancamentos         Lancamento[]
+}
+
+model Produto {
+  id                  Int       @id @default(autoincrement())
+  containerId         Int
+  container           Container @relation(fields: [containerId], references: [id], onDelete: Cascade)
+  descricao           String
+  quantidade          Int       @default(1)
+  valorUnitarioChina  Float     @default(0)
+  moeda               String    @default("USD")
+  custoUnitarioBrasil Float     @default(0)
+  createdAt           DateTime  @default(now())
+}
+
+model Lancamento {
+  id            Int       @id @default(autoincrement())
+  containerId   Int
+  container     Container @relation(fields: [containerId], references: [id], onDelete: Cascade)
+  data          DateTime
+  descricao     String
+  categoria     String
+  moeda         String    @default("BRL")
+  valorOriginal Float
+  cambio        Float     @default(1)
+  valorBRL      Float
+  createdAt     DateTime  @default(now())
+}
