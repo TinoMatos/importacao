@@ -2,7 +2,7 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": { "builder": "NIXPACKS" },
   "deploy": {
-    "startCommand": "npx prisma db push --accept-data-loss && node server.js",
+    "startCommand": "sh -c 'for i in 1 2 3 4 5 6 7 8 9 10; do npx prisma db push --accept-data-loss && break || (echo waiting for db...; sleep 3); done; node server.js'",
     "restartPolicyType": "ON_FAILURE"
   }
 }

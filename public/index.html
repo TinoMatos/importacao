@@ -18,10 +18,26 @@
   .tab.active { background: #1a1a1a; color: #fff; }
   .tab:hover:not(.active) { background: #f0ede8; }
   .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 1.5rem; }
-  .metric { background: #fff; border: 1px solid #e0ddd5; border-radius: 12px; padding: 16px; }
-  .metric-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .metric { background: #fff; border: 1px solid #e0ddd5; border-radius: 12px; padding: 16px; position: relative; overflow: hidden; }
+  .metric-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
   .metric-value { font-size: 22px; font-weight: 600; }
   .metric-sub { font-size: 11px; color: #aaa; margin-top: 3px; }
+  .metric-icon { width: 14px; height: 14px; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; font-size: 10px; font-weight: 700; }
+  .metric-pago { background: linear-gradient(135deg, #f0faf0 0%, #fff 60%); border-color: #cfe7cf; }
+  .metric-pago::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: #2e7d32; }
+  .metric-pago .metric-value { color: #1e4d0a; }
+  .metric-pago .metric-label { color: #2e7d32; }
+  .metric-pago .metric-icon { background: #dcf0d0; color: #1e4d0a; }
+  .metric-saldo { background: linear-gradient(135deg, #fdf3f3 0%, #fff 60%); border-color: #f0cfcf; }
+  .metric-saldo::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: #c33; }
+  .metric-saldo .metric-value { color: #a01e1e; }
+  .metric-saldo .metric-label { color: #c33; }
+  .metric-saldo .metric-icon { background: #f5d5d5; color: #7a1a1a; }
+  .metric-saldo.zerado { background: linear-gradient(135deg, #f0faf0 0%, #fff 60%); border-color: #cfe7cf; }
+  .metric-saldo.zerado::before { background: #2e7d32; }
+  .metric-saldo.zerado .metric-value { color: #1e4d0a; }
+  .metric-saldo.zerado .metric-label { color: #2e7d32; }
+  .metric-saldo.zerado .metric-icon { background: #dcf0d0; color: #1e4d0a; }
   .card { background: #fff; border: 1px solid #e0ddd5; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
   .card-title { font-size: 14px; font-weight: 600; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
   .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 10px; }
@@ -91,7 +107,8 @@
         <div class="metric"><div class="metric-label">Contêineres</div><div class="metric-value" id="m-total">0</div></div>
         <div class="metric"><div class="metric-label">Em andamento</div><div class="metric-value" id="m-abertos">0</div></div>
         <div class="metric"><div class="metric-label">Valor total esperado</div><div class="metric-value" id="m-esperado">R$ 0</div></div>
-        <div class="metric"><div class="metric-label">Total pago (BRL)</div><div class="metric-value" id="m-pago">R$ 0</div></div>
+        <div class="metric metric-pago"><div class="metric-label"><span class="metric-icon">✓</span>Total pago (BRL)</div><div class="metric-value" id="m-pago">R$ 0</div></div>
+        <div class="metric metric-saldo" id="m-saldo-card"><div class="metric-label"><span class="metric-icon">!</span>Saldo a pagar</div><div class="metric-value" id="m-saldo">R$ 0</div></div>
       </div>
 
       <div class="card">
@@ -126,13 +143,17 @@
       <div id="tab-resumo">
         <div class="metrics">
           <div class="metric"><div class="metric-label">Valor esperado</div><div class="metric-value" id="r-esperado">R$ 0</div></div>
-          <div class="metric"><div class="metric-label">Total pago</div><div class="metric-value" id="r-pago">R$ 0</div></div>
-          <div class="metric"><div class="metric-label">Saldo a pagar</div><div class="metric-value" id="r-saldo">R$ 0</div></div>
+          <div class="metric metric-pago"><div class="metric-label"><span class="metric-icon">✓</span>Total pago</div><div class="metric-value" id="r-pago">R$ 0</div></div>
+          <div class="metric metric-saldo" id="r-saldo-card"><div class="metric-label"><span class="metric-icon">!</span>Saldo a pagar</div><div class="metric-value" id="r-saldo">R$ 0</div></div>
           <div class="metric"><div class="metric-label">Produtos cadastrados</div><div class="metric-value" id="r-prod">0</div></div>
         </div>
         <div class="card">
           <div class="card-title">Pagamentos por categoria</div>
           <div id="r-categorias"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Lançamentos recentes</div>
+          <div id="r-lancamentos"></div>
         </div>
       </div>
 
@@ -142,8 +163,6 @@
           <div class="form-row">
             <div class="form-group"><label>Descrição</label><input id="p-desc"></div>
             <div class="form-group"><label>Quantidade</label><input id="p-qtd" type="number" value="1"></div>
-            <div class="form-group"><label>Valor unit. China</label><input id="p-vu" type="number" step="0.01" value="0"></div>
-            <div class="form-group"><label>Moeda</label><select id="p-moeda"><option>USD</option><option>CNY</option><option>BRL</option></select></div>
             <div class="form-group"><label>Custo unit. Brasil (R$)</label><input id="p-custo" type="number" step="0.01" value="0"></div>
             <div class="form-group"><label>&nbsp;</label><button class="btn btn-primary" onclick="addProduto()">Adicionar</button></div>
           </div>
@@ -151,7 +170,7 @@
         <div class="card">
           <div class="card-title">Produtos do contêiner</div>
           <div class="table-wrap"><table>
-            <thead><tr><th>Descrição</th><th>Qtd</th><th>Unit. China</th><th>Moeda</th><th>Unit. Brasil</th><th>Total Brasil</th><th></th></tr></thead>
+            <thead><tr><th>Descrição</th><th>Qtd</th><th>Unit. Brasil</th><th>Total Brasil</th><th></th></tr></thead>
             <tbody id="produtos-tbody"></tbody>
           </table></div>
         </div>
@@ -164,9 +183,6 @@
             <div class="form-group"><label>Data</label><input id="l-data" type="date"></div>
             <div class="form-group"><label>Descrição</label><input id="l-desc"></div>
             <div class="form-group"><label>Categoria</label><select id="l-cat"><option>Produto</option><option>Frete</option><option>Seguro</option><option>Taxa</option><option>Outro</option></select></div>
-            <div class="form-group"><label>Moeda</label><select id="l-moeda" onchange="recalcBRL()"><option>BRL</option><option>USD</option><option>CNY</option></select></div>
-            <div class="form-group"><label>Valor original</label><input id="l-valor" type="number" step="0.01" value="0" oninput="recalcBRL()"></div>
-            <div class="form-group"><label>Câmbio</label><input id="l-cambio" type="number" step="0.0001" value="1" oninput="recalcBRL()"></div>
             <div class="form-group"><label>Valor BRL</label><input id="l-brl" type="number" step="0.01" value="0"></div>
             <div class="form-group"><label>&nbsp;</label><button class="btn btn-primary" onclick="addLancamento()">Adicionar</button></div>
           </div>
@@ -174,7 +190,7 @@
         <div class="card">
           <div class="card-title">Lançamentos</div>
           <div class="table-wrap"><table>
-            <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Moeda</th><th>Valor orig.</th><th>Câmbio</th><th>BRL</th><th></th></tr></thead>
+            <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>BRL</th><th></th></tr></thead>
             <tbody id="lanc-tbody"></tbody>
           </table></div>
         </div>
@@ -297,6 +313,9 @@ async function showDashboard() {
   const pago = list.reduce((s, c) => s + c.lancamentos.reduce((a, l) => a + l.valorBRL, 0), 0);
   document.getElementById('m-esperado').textContent = fmtBRL(esperado);
   document.getElementById('m-pago').textContent = fmtBRL(pago);
+  const saldo = esperado - pago;
+  document.getElementById('m-saldo').textContent = fmtBRL(saldo);
+  document.getElementById('m-saldo-card').classList.toggle('zerado', saldo <= 0);
 }
 
 async function createContainer() {
@@ -351,7 +370,9 @@ function renderResumo() {
   const pago = c.lancamentos.reduce((s, l) => s + l.valorBRL, 0);
   document.getElementById('r-esperado').textContent = fmtBRL(c.valorTotalEsperado);
   document.getElementById('r-pago').textContent = fmtBRL(pago);
-  document.getElementById('r-saldo').textContent = fmtBRL((c.valorTotalEsperado || 0) - pago);
+  const rSaldo = (c.valorTotalEsperado || 0) - pago;
+  document.getElementById('r-saldo').textContent = fmtBRL(rSaldo);
+  document.getElementById('r-saldo-card').classList.toggle('zerado', rSaldo <= 0);
   document.getElementById('r-prod').textContent = c.produtos.length;
   const cats = {};
   c.lancamentos.forEach(l => { cats[l.categoria] = (cats[l.categoria] || 0) + l.valorBRL; });
@@ -360,16 +381,19 @@ function renderResumo() {
   el.innerHTML = '<div class="table-wrap"><table><thead><tr><th>Categoria</th><th>Total BRL</th></tr></thead><tbody>' +
     Object.entries(cats).map(([k, v]) => `<tr><td><span class="badge badge-${k.toLowerCase()}">${k}</span></td><td>${fmtBRL(v)}</td></tr>`).join('') +
     '</tbody></table></div>';
+  const le = document.getElementById('r-lancamentos');
+  if (!c.lancamentos.length) { le.innerHTML = '<div class="empty">Sem lançamentos</div>'; return; }
+  le.innerHTML = '<div class="table-wrap"><table><thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>BRL</th></tr></thead><tbody>' +
+    c.lancamentos.map(l => `<tr><td>${fmtDate(l.data)}</td><td>${escapeHtml(l.descricao)}</td><td><span class="badge badge-${l.categoria.toLowerCase()}">${l.categoria}</span></td><td>${fmtBRL(l.valorBRL)}</td></tr>`).join('') +
+    '</tbody></table></div>';
 }
 
 function renderProdutos() {
   const tb = document.getElementById('produtos-tbody');
-  if (!currentContainer.produtos.length) { tb.innerHTML = '<tr><td colspan="7" class="empty">Nenhum produto</td></tr>'; return; }
+  if (!currentContainer.produtos.length) { tb.innerHTML = '<tr><td colspan="5" class="empty">Nenhum produto</td></tr>'; return; }
   tb.innerHTML = currentContainer.produtos.map(p => `<tr>
     <td>${escapeHtml(p.descricao)}</td>
     <td>${p.quantidade}</td>
-    <td>${Number(p.valorUnitarioChina).toFixed(2)}</td>
-    <td>${p.moeda}</td>
     <td>${fmtBRL(p.custoUnitarioBrasil)}</td>
     <td>${fmtBRL(p.custoUnitarioBrasil * p.quantidade)}</td>
     <td><button class="btn btn-sm btn-danger" onclick="delProduto(${p.id})">excluir</button></td>
@@ -382,13 +406,12 @@ async function addProduto() {
   await api(`/api/containers/${currentContainer.id}/produtos`, { method: 'POST', body: JSON.stringify({
     descricao: desc,
     quantidade: Number(document.getElementById('p-qtd').value || 1),
-    valorUnitarioChina: Number(document.getElementById('p-vu').value || 0),
-    moeda: document.getElementById('p-moeda').value,
+    valorUnitarioChina: 0,
+    moeda: 'BRL',
     custoUnitarioBrasil: Number(document.getElementById('p-custo').value || 0),
   })});
   document.getElementById('p-desc').value = '';
   document.getElementById('p-qtd').value = '1';
-  document.getElementById('p-vu').value = '0';
   document.getElementById('p-custo').value = '0';
   refreshContainer();
 }
@@ -402,40 +425,30 @@ async function delProduto(id) {
 function renderLancamentos() {
   const tb = document.getElementById('lanc-tbody');
   if (!document.getElementById('l-data').value) document.getElementById('l-data').value = new Date().toISOString().slice(0, 10);
-  if (!currentContainer.lancamentos.length) { tb.innerHTML = '<tr><td colspan="8" class="empty">Nenhum lançamento</td></tr>'; return; }
+  if (!currentContainer.lancamentos.length) { tb.innerHTML = '<tr><td colspan="5" class="empty">Nenhum lançamento</td></tr>'; return; }
   tb.innerHTML = currentContainer.lancamentos.map(l => `<tr>
     <td>${fmtDate(l.data)}</td>
     <td>${escapeHtml(l.descricao)}</td>
     <td><span class="badge badge-${l.categoria.toLowerCase()}">${l.categoria}</span></td>
-    <td>${l.moeda}</td>
-    <td>${Number(l.valorOriginal).toFixed(2)}</td>
-    <td>${Number(l.cambio).toFixed(4)}</td>
     <td>${fmtBRL(l.valorBRL)}</td>
     <td><button class="btn btn-sm btn-danger" onclick="delLanc(${l.id})">excluir</button></td>
   </tr>`).join('');
 }
 
-function recalcBRL() {
-  const moeda = document.getElementById('l-moeda').value;
-  const v = Number(document.getElementById('l-valor').value || 0);
-  const c = Number(document.getElementById('l-cambio').value || 1);
-  document.getElementById('l-brl').value = (moeda === 'BRL' ? v : v * c).toFixed(2);
-}
-
 async function addLancamento() {
   const desc = document.getElementById('l-desc').value.trim();
   if (!desc) return alert('Descrição obrigatória');
+  const brl = Number(document.getElementById('l-brl').value || 0);
   await api(`/api/containers/${currentContainer.id}/lancamentos`, { method: 'POST', body: JSON.stringify({
     data: document.getElementById('l-data').value || new Date().toISOString(),
     descricao: desc,
     categoria: document.getElementById('l-cat').value,
-    moeda: document.getElementById('l-moeda').value,
-    valorOriginal: Number(document.getElementById('l-valor').value || 0),
-    cambio: Number(document.getElementById('l-cambio').value || 1),
-    valorBRL: Number(document.getElementById('l-brl').value || 0),
+    moeda: 'BRL',
+    valorOriginal: brl,
+    cambio: 1,
+    valorBRL: brl,
   })});
   document.getElementById('l-desc').value = '';
-  document.getElementById('l-valor').value = '0';
   document.getElementById('l-brl').value = '0';
   refreshContainer();
 }
@@ -457,9 +470,11 @@ function renderRateio() {
     return `<tr><td>${escapeHtml(p.descricao)}</td><td>${p.quantidade}</td><td>${fmtBRL(p.custoUnitarioBrasil)}</td><td>${fmtBRL(linha)}</td></tr>`;
   }).join('');
   const pago = currentContainer.lancamentos.reduce((s, l) => s + l.valorBRL, 0);
+  const pagosRows = currentContainer.lancamentos.map(l => `<tr><td colspan="3" style="color:#666;padding-left:24px;font-size:12px">↳ ${fmtDate(l.data)} · ${escapeHtml(l.descricao)} <span class="badge badge-${l.categoria.toLowerCase()}" style="margin-left:6px">${l.categoria}</span></td><td style="font-size:12px;color:#666">${fmtBRL(l.valorBRL)}</td></tr>`).join('');
   tf.innerHTML = `<tr><td style="font-weight:600">Total</td><td style="font-weight:600">${qtdTotal}</td><td></td><td style="font-weight:600">${fmtBRL(total)}</td></tr>
-  <tr><td colspan="3" style="color:#888">Total pago no contêiner</td><td>${fmtBRL(pago)}</td></tr>
-  <tr><td colspan="3" style="color:#888">Diferença (pago − custo informado)</td><td style="color:${(pago-total)>=0?'#1e4d0a':'#c33'}">${fmtBRL(pago - total)}</td></tr>`;
+  <tr><td colspan="3" style="color:#888;font-weight:600">Total pago no contêiner</td><td style="font-weight:600">${fmtBRL(pago)}</td></tr>
+  ${pagosRows}
+  <tr><td colspan="3" style="color:#888;font-weight:600">Diferença (pago − custo informado)</td><td style="color:${(pago-total)>=0?'#1e4d0a':'#c33'};font-weight:600">${fmtBRL(pago - total)}</td></tr>`;
 }
 
 function renderConfig() {
